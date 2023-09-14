@@ -7,8 +7,7 @@ from telegram.ext import (
 )
 
 
-BOT_TOKEN = "6155546088:AAF_sBuYKbMSi3XxJUwdSixd-BNaVbB7o3Q"
-
+BOT_TOKEN = "### its a secret!"
 
 application = Application.builder().token(BOT_TOKEN).build()
 
