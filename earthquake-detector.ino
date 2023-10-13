@@ -2,11 +2,16 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BusIO_Register.h>
 #include <Wire.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
 
+const char *ssid = "SSID";
+const char *password = "PASSWORD";
+const char *serverURL = "http://endpoint";
 
-int buzzerPin = D3; // Define the buzzer pin
-int led = D0;    // Define the LED pin
-int pushi = D4; // Define the push button pin
+int buzzerPin = D3;
+int led = D0;
+int pushi = D4;
 
 Adafruit_MPU6050 mpu;
 
@@ -101,54 +106,54 @@ Adafruit_MPU6050 mpu;
 #define NOTE_DS8 4978
 
 int melody[] = {
-  NOTE_E7,-4, NOTE_E7,-4, 0,-4, NOTE_E7,-4, 0,-4, NOTE_E7,-4, 0,-4, NOTE_E7,-4, NOTE_G7,-4,
-  0,-4, NOTE_C7,-4, 0,-4, NOTE_G6,-4, 0,-4, 0, 0, 0, 0,
-  NOTE_G6,-4, 0,-4, 0,-4, 0, 0, NOTE_G6,-4, 0,-4, 0,-4, 0,-4,
-  NOTE_G6,-4, 0,-4, 0,-4, 0, 0, NOTE_G6,-4, 0,-4, 0,-4, 0,-4,
-  NOTE_G6,-4, NOTE_A6,-4, 0,-4, NOTE_B6,-4, 0,-4, NOTE_AS6,-4, NOTE_A6,-4, 0,-4, NOTE_G6,-4,
-  NOTE_E7,-4, NOTE_G7,-4, NOTE_A7,-4, 0,-4, NOTE_F7,-4, NOTE_G7,-4, 0,-4, NOTE_E7,-4, 0,-4,
-  NOTE_C7,-4, NOTE_D7,-4, NOTE_B6,-4, 0,-4, 0, 0, 0, 0
-};
+    NOTE_E7, -4, NOTE_E7, -4, 0, -4, NOTE_E7, -4, 0, -4, NOTE_E7, -4, 0, -4, NOTE_E7, -4, NOTE_G7, -4,
+    0, -4, NOTE_C7, -4, 0, -4, NOTE_G6, -4, 0, -4, 0, 0, 0, 0,
+    NOTE_G6, -4, 0, -4, 0, -4, 0, 0, NOTE_G6, -4, 0, -4, 0, -4, 0, -4,
+    NOTE_G6, -4, 0, -4, 0, -4, 0, 0, NOTE_G6, -4, 0, -4, 0, -4, 0, -4,
+    NOTE_G6, -4, NOTE_A6, -4, 0, -4, NOTE_B6, -4, 0, -4, NOTE_AS6, -4, NOTE_A6, -4, 0, -4, NOTE_G6, -4,
+    NOTE_E7, -4, NOTE_G7, -4, NOTE_A7, -4, 0, -4, NOTE_F7, -4, NOTE_G7, -4, 0, -4, NOTE_E7, -4, 0, -4,
+    NOTE_C7, -4, NOTE_D7, -4, NOTE_B6, -4, 0, -4, 0, 0, 0, 0};
 
-int noteDuration = 1200 / 16; // Set the tempo
-
-void playMarioTheme() {
-  for (int thisNote = 0; thisNote < sizeof(melody) / sizeof(melody[0]); thisNote += 2) {
+int noteDuration = 1200 / 16;
+void playMarioTheme()
+{
+  for (int thisNote = 0; thisNote < sizeof(melody) / sizeof(melody[0]); thisNote += 2)
+  {
     int note = melody[thisNote];
     int duration = melody[thisNote + 1] * noteDuration;
 
-    if (note == 0) {
+    if (note == 0)
+    {
       delay(duration);
-    } else {
+    }
+    else
+    {
       tone(buzzerPin, note, duration);
       delay(duration);
       noTone(buzzerPin);
     }
-    
-    // Add a slight pause between notes
+
     delay(noteDuration / 10);
   }
 }
-
-
 
 float prevx = -0.5;
 float prevy = 0.15;
 float prevz = 10.9;
 
-
-void setup(void) {
+void setup(void)
+{
   Serial.begin(115200);
 
-   // use Serial3 on TX3 and RX3 pins
   pinMode(buzzerPin, OUTPUT);
   pinMode(led, OUTPUT);
   pinMode(pushi, INPUT_PULLUP);
 
-
-  if (!mpu.begin()) {
+  if (!mpu.begin())
+  {
     Serial.println("Failed to find MPU6050 chip");
-    while (1) {
+    while (1)
+    {
       delay(10);
     }
   }
@@ -156,7 +161,8 @@ void setup(void) {
 
   mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
   Serial.print("Accelerometer range set to: ");
-  switch (mpu.getAccelerometerRange()) {
+  switch (mpu.getAccelerometerRange())
+  {
   case MPU6050_RANGE_2_G:
     Serial.println("+-2G");
     break;
@@ -172,7 +178,8 @@ void setup(void) {
   }
   mpu.setGyroRange(MPU6050_RANGE_500_DEG);
   Serial.print("Gyro range set to: ");
-  switch (mpu.getGyroRange()) {
+  switch (mpu.getGyroRange())
+  {
   case MPU6050_RANGE_250_DEG:
     Serial.println("+- 250 deg/s");
     break;
@@ -189,7 +196,8 @@ void setup(void) {
 
   mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
   Serial.print("Filter bandwidth set to: ");
-  switch (mpu.getFilterBandwidth()) {
+  switch (mpu.getFilterBandwidth())
+  {
   case MPU6050_BAND_260_HZ:
     Serial.println("260 Hz");
     break;
@@ -217,10 +225,40 @@ void setup(void) {
   delay(100);
 }
 
-void loop() {
+void sendEarthquakeRequest()
+{
+  HTTPClient http;
+
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    http.begin(serverURL);
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+    String httpRequestData = "message=Earthquake detected";
+    int httpResponseCode = http.POST(httpRequestData);
+
+    if (httpResponseCode > 0)
+    {
+      String response = http.getString();
+      Serial.println("HTTP Response Code: " + String(httpResponseCode));
+      Serial.println(response);
+    }
+    else
+    {
+      Serial.println("HTTP Request failed");
+    }
+
+    http.end();
+  }
+  else
+  {
+    Serial.println("WiFi not connected");
+  }
+}
 
 
-  /* Get new sensor events with the readings */
+void loop()
+{
+
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
@@ -270,33 +308,27 @@ void loop() {
   // Serial.print(abs(diffz));
   // Serial.println(" m/s^2");
 
-
-  if((abs(diffx) > 0.5 || abs(diffy) > 0.5 || abs(diffz) > 0.5) && (!digitalRead(pushi))) {
+  if ((abs(diffx) > 0.5 || abs(diffy) > 0.5 || abs(diffz) > 0.5) && (!digitalRead(pushi)))
+  {
     Serial.write("1");
     Serial.println("EARTHQUAKEEEE is heree, go under the table :sus:!");
-    Serial.println("EARTHQUAKEEEE is heree, go under the table :sus:!");
-    Serial.println("EARTHQUAKEEEE is heree, go under the table :sus:!");
+    sendEarthquakeRequest();
 
-       for (int i = 0; i <= 2000; i += 20) {
-         analogWrite(led,(i/7.85));
-         tone(buzzerPin, i);
-         delay(10);
-       }
-       for (int i = 2000; i >= 0; i -= 20) {
-         analogWrite(led,(i/7.85)); 
-         tone(buzzerPin, i);
-         delay(10);
-       }
-      noTone(buzzerPin);
-
-      // playMarioTheme();
-      delay(100);
-
-
-    
-
-   }
-  
+    for (int i = 0; i <= 2000; i += 20)
+    {
+      // analogWrite(led, (i / 7.85));
+      tone(buzzerPin, i);
+      delay(10);
+    }
+    for (int i = 2000; i >= 0; i -= 20)
+    {
+      // analogWrite(led, (i / 7.85));
+      tone(buzzerPin, i);
+      delay(10);
+    }
+    noTone(buzzerPin);
+    delay(100);
+  }
 
   delay(100);
- }
+}
