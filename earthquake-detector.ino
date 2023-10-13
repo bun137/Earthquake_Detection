@@ -1,11 +1,10 @@
+#include <Wire.h>
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
-#include <Wire.h>
 
-
-int buzzerPin = 9;
-int led = 2;
-int pushi = 6;
+int buzzerPin = D2; // Define the buzzer pin
+int ledPin = D4;    // Define the LED pin
+int pushButtonPin = D1; // Define the push button pin
 
 Adafruit_MPU6050 mpu;
 
@@ -138,7 +137,7 @@ float prevz = 10.9;
 
 void setup(void) {
   Serial.begin(115200);
-  Serial3.begin(9600);
+  Serial.begin(9600);
 
    // use Serial3 on TX3 and RX3 pins
   pinMode(buzzerPin, OUTPUT);
@@ -272,7 +271,7 @@ void loop() {
 
 
   if((abs(diffx) > 0.5 || abs(diffy) > 0.5 || abs(diffz) > 0.5) && (!digitalRead(pushi))) {
-    Serial3.write("1");
+    Serial.write("1");
     Serial.println("EARTHQUAKEEEE is heree, go under the table :sus:!");
     Serial.println("EARTHQUAKEEEE is heree, go under the table :sus:!");
     Serial.println("EARTHQUAKEEEE is heree, go under the table :sus:!");
@@ -291,11 +290,7 @@ void loop() {
 
       // playMarioTheme();
       delay(100);
-
-
-    
-
-   }
+      }
   
 
   delay(100);
